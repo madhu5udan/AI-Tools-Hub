@@ -24,18 +24,19 @@ export const getPublishedCreations = async (req, res) => {
 
 export const toggleLikeCreation = async (req, res) => {
   try {
-    const { userId } = req.auth();
+    const { userId } = req.auth;
     const { id } = req.body;
 
-    const creation = await sql`select * from creations where id=${id}`;
-    if (!creation) {
+    const result = await sql`select * from creations where id=${id}`;
+    if (result.length === 0) {
       return res.json({ success: false, message: "Creation not found" });
     }
 
-    const currentLikes = creation.likes;
+    const creation = result[0];
+    const currentLikes = creation.likes || [];
     const userIdStr = userId.toString();
-    let updatedLikes;
-    let message;
+
+    let updatedLikes, message;
 
     if (currentLikes.includes(userIdStr)) {
       updatedLikes = currentLikes.filter((user) => user !== userIdStr);
@@ -45,9 +46,7 @@ export const toggleLikeCreation = async (req, res) => {
       message = "Creation Liked";
     }
 
-    const formattedArray = `{${updatedLikes.json(",")}}`;
-
-    await sql`update creations set likes=${formattedArray}::text[] where id=${id}`;
+    await sql`update creations set likes=${updatedLikes} where id=${id}`;
 
     res.json({ success: true, message });
   } catch (error) {
